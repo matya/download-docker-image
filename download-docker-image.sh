@@ -215,7 +215,7 @@ handle_single_manifest_v2() {
             local parentJson="$(printf ', parent: "%s"' "$parentId")"
             local addJson="$(printf '{ id: "%s"%s }' "$layerId" "${parentId:+$parentJson}")"
             # this starter JSON is taken directly from Docker's own "docker save" output for unimportant layers
-            jq "$addJson + ." > "$dir/$layerId/json" <<- 'EOJSON'
+            jq "$addJson + ." > "$dir/$layerId/json" <<'EOJSON'
                 {
                     "created": "0001-01-01T00:00:00Z",
                     "container_config": {
@@ -238,7 +238,7 @@ handle_single_manifest_v2() {
                         "Labels": null
                     }
                 }
-            EOJSON
+EOJSON
         fi
 
         case "$layerMediaType" in
@@ -319,8 +319,8 @@ for ind in "${!ARGS[@]}"; do
 
     # Only fetch header so we will receive a 401 Unautorized with the necessary infos 
     rc=0
-    auth_url="$( 
-        curl -sL -X HEAD -I "$registryBase/v2/$image/manifests/$reference" | awk '
+    auth_hdr="$( curl -sL -X HEAD -I "$registryBase/v2/$image/manifests/$reference" )"
+    auth_url="$( awk '
             # URLEncode function from: https://rosettacode.org/wiki/URL_encoding#AWK
             BEGIN { for (i = 0; i <= 255; i++) ord[sprintf("%c", i)] = i; IGNORECASE = 1; }
 
@@ -337,8 +337,10 @@ for ind in "${!ARGS[@]}"; do
                 return res
             }
 
+            /Connection established/ { next; }
+
             # We did not receive an unauthorized, so no need to get a bearer token?
-            $1 ~ "^HTTP/" && $2 != "200" && $2 != "401" { exit 11; }
+            $1 ~ "^HTTP/" && $2 != "401" { exit 11; }
 
             # Not a bearer token auth, we cannot handle this
             $1 == "www-authenticate:" && $2 != "Bearer" { 
@@ -359,8 +361,7 @@ for ind in "${!ARGS[@]}"; do
                 printf "%s?service=%s&scope=%s\n", result[1], escape(result[2]), result[3];
                 exit 10;
             }
-        '
-    )" || rc=$?;
+        ' <<<"$auth_hdr" )" || rc=$?;
     token=''
     case $rc in
         10)
@@ -369,6 +370,7 @@ for ind in "${!ARGS[@]}"; do
         12|13)
             exit 1
             ;;
+        11) ;;
         *)
             echo >&2 "* Error: Unknown error during authentication: $rc"
             exit 1
