@@ -27,6 +27,9 @@ usage() {
     echo "      -I|--insecure               Use http instead of https protocol when not using official registry"
     echo "      -p|--progress               Show download progress bar"
     echo "      -q|--quiet                  Only minimal output"
+    echo "      -a|--auth-file              Credentials for non-public registry images. Defaults to ~/.docker/config.json"
+    echo "      -A|--auth-env               Environment variable name holding the base64 encoded user:pass."
+    echo "      -c|--credentials            The base64 encoded user:pass. NOT RECOMMENDED! MAY LEAK!"
     echo "      --force                     Overwrite output file if it exists"
     echo ""
     echo " Note: "
@@ -34,10 +37,14 @@ usage() {
     echo "  - load and output as tar requires tar binary present in path"
     echo "  - load requires docker binary present in path"
     echo "  - Required binaries: curl, jq, awk, sha256sum, cut, tr (must be present in PATH or CWD)"
+    echo "  - Precendence of auth: --credentials, --auth-env, --auth-file, defaults."
     echo ""
     [ -z "$1" ] || exit "$1"
 }
 
+AUTHCRED=""
+AUTHENV=""
+AUTHFILE=~/.docker/config.json
 PROGRESS="-s"
 QUIET=0
 LOAD=0
@@ -59,6 +66,9 @@ while [[ -n $1 ]]; do
         -k|--keep-tmpdir)   KEEP=1;;
         -p|--progress)      QUIET=0 ; PROGRESS="--progress-bar";;
         -q|--quiet)         QUIET=1 ; PROGRESS="-s";;
+        -a|--auth-file)     AUTHFILE="$2"; shift ;;
+        -A|--auth-env)      AUTHENV="$2"; shift ;;
+        -c|--credentials)   AUTHCRED="$2"; shift ;;
         --force)            FORCE=1;;
         -*)
             echo "* Error: Unknown option: $1" >&2
@@ -293,7 +303,8 @@ for ind in "${!ARGS[@]}"; do
         continue
     fi
     if [[ -n "${BASH_REMATCH[2]}" ]]; then
-        registryBase="${protocol}://${BASH_REMATCH[2]}"
+        registryService="${BASH_REMATCH[2]}"
+        registryBase="${protocol}://${registryService}"
     fi
     if [[ -z "${BASH_REMATCH[4]}" ]]; then
         # add prefix library if passed official image
@@ -365,7 +376,32 @@ for ind in "${!ARGS[@]}"; do
     token=''
     case $rc in
         10)
-            token="$(curl -fsSL "$auth_url" | jq --raw-output 'if .token != null  then .token elif .access_token != null then .access_token else . end ')"
+            if [[ -n $AUTHCRED ]]; then
+                auth_cred="$AUTHCRED"
+                ((QUIET)) || echo "* WARNING: Credentials provided via command line. This is insecure!" >&2
+            elif [[ -n ${AUTHENV} ]]; then
+                if [[ -n ${!AUTHENV} ]]; then
+                    auth_cred="${!AUTHENV}"
+                    ((QUIET)) || echo "* Info: Credentials provided via environment variable ${AUTHENV}">&2
+                else
+                    ((QUIET)) || echo "* WARNING: Credentials via environment variable ${AUTHENV} are empty!">&2
+                fi
+            elif [[ -s $AUTHFILE ]]; then
+                auth_cred="$( jq --raw-output '.auths["'$registryService'"].auth' $AUTHFILE 2> /dev/null )" 
+                if [[ $auth_cred = "null" ]]; then
+                    auth_cred=""
+                else
+                    ((QUIET)) || echo "* Info: Credentials for $registryService found in $AUTHFILE" >&2
+                fi
+            fi
+            if ! token="$(curl ${auth_cred:+-H "Authorization: Basic ${auth_cred}"} -fsSL "$auth_url" | jq --raw-output 'if .token != null  then .token elif .access_token != null then .access_token else "-" end ' 2>/dev/null)"; then
+                echo "* Error: could not parse json from Bearer token request via $auth_url" >&2
+                exit 1
+            fi
+            if [[ $token = "-" ]]; then
+                echo "* Error: No Bearer token found in response from $auth_url" >&2
+                exit 1
+            fi
             ;;
         12|13)
             exit 1

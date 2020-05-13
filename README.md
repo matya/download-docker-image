@@ -22,13 +22,18 @@ Usage: download-docker-image.sh <options> image[:tag][@digest] ...
       -I|--insecure               Use http instead of https protocol when not using official registry
       -p|--progress               Show download progress bar
       -q|--quiet                  Only minimal output
+      -a|--auth-file              Credentials for non-public registry images. Defaults to ~/.docker/config.json
+      -A|--auth-env               Environment variable name holding the base64 encoded user:pass.
+      -c|--credentials            The base64 encoded user:pass. NOT RECOMMENDED! MAY LEAK!
       --force                     Overwrite output file if it exists
 
  Note:
+  - If [:tag] is omitted it defaults to :latest. Please use explicit tags where possible.
   - use http_proxy and https_proxy variables to download behind firewall. See your curl's man page
   - load and output as tar requires tar binary present in path
   - load requires docker binary present in path
   - Required binaries: curl, jq, awk, sha256sum, cut, tr (must be present in PATH or CWD)
+  - Precendence of auth: --credentials, --auth-env, --auth-file, defaults.
 
 ```
 
