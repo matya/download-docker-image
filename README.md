@@ -22,9 +22,9 @@ Usage: download-docker-image.sh <options> image[:tag][@digest] ...
       -I|--insecure               Use http instead of https protocol when not using official registry
       -p|--progress               Show download progress bar
       -q|--quiet                  Only minimal output
-      -a|--auth-file              Credentials for non-public registry images. Defaults to ~/.docker/config.json
-      -A|--auth-env               Environment variable name holding the base64 encoded user:pass.
-      -c|--credentials            The base64 encoded user:pass. NOT RECOMMENDED! MAY LEAK!
+      -a|--auth-file <file>       Credentials for non-public registry images. Defaults to ~/.docker/config.json
+      -A|--auth-env <varname>     Environment variable name holding the base64 encoded user:pass.
+      -c|--credentials <creds>    The base64 encoded user:pass. NOT RECOMMENDED! MAY LEAK!
       --force                     Overwrite output file if it exists
 
  Note:
