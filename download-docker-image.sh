@@ -319,7 +319,7 @@ for ind in "${!ARGS[@]}"; do
 
     # Only fetch header so we will receive a 401 Unautorized with the necessary infos 
     rc=0
-    auth_hdr="$( curl -sL -X HEAD -I "$registryBase/v2/$image/manifests/$reference" )"
+    auth_hdr="$( curl -sL -X HEAD -I "$registryBase/v2/$image/manifests/$reference" )" || :
     auth_url="$( awk '
             # URLEncode function from: https://rosettacode.org/wiki/URL_encoding#AWK
             BEGIN { for (i = 0; i <= 255; i++) ord[sprintf("%c", i)] = i; IGNORECASE = 1; }
@@ -365,7 +365,7 @@ for ind in "${!ARGS[@]}"; do
     token=''
     case $rc in
         10)
-            token="$(curl -fsSL "$auth_url" | jq --raw-output '.access_token')"
+            token="$(curl -fsSL "$auth_url" | jq --raw-output 'if .token != null  then .token elif .access_token != null then .access_token else . end ')"
             ;;
         12|13)
             exit 1
