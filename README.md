@@ -14,26 +14,34 @@ It allows you to download a docker image in a loadable tar-format, but **without
 ```
 Usage: download-docker-image.sh <options> image[:tag][@digest] ...
   options:
-      -d|--tmpdir <directory>     Temporary directory. Defaults to /tmp/docker_pull.XXXX
-      -o|--output <file>          Write downloaded images as tar to <file>. Defaults to ./out.tar.
+      -d|--dir <directory>        Output directory. Defaults to /tmp/docker_pull.XXXX
+      -o|--output <file>          Write downloaded images as tar to <file>.
       -O|--stdout                 Write downloaded images as tar to stdout
-      -l|--load                   Automatically use docker load in download. Disables output file.
-      -k|--keep-tmpdir            Keep temporary directory, do not create tar file
+      -l|--load                   Automatically use docker load afterwards. Disables output file.
       -I|--insecure               Use http instead of https protocol when not using official registry
-      -p|--progress               Show download progress bar
-      -q|--quiet                  Only minimal output
-      -a|--auth-file <file>       Credentials for non-public registry images. Defaults to ~/.docker/config.json
-      -A|--auth-env <varname>     Environment variable name holding the base64 encoded user:pass.
-      -c|--credentials <creds>    The base64 encoded user:pass. NOT RECOMMENDED! MAY LEAK!
-      --force                     Overwrite output file if it exists
+      -p|--progress               Show additional download progress bar of curl.
+      -q|--quiet                  Only output warnings and errors.
+      -a|--auth                   Use authentication for accessing the registry.
+                file:<file>       Credential store file for non-public registry images. Default: ~/.docker/config.json
+                env:<varname>     Environment variable name holding the base64 encoded user:pass.
+                <b64creds>        The base64 encoded version of 'user:pass'. NOT RECOMMENDED! MAY LEAK!
+      -A|--no-auth                Do not use any form of authentication. Disables any --auth option.
+      -D|--debug                  Debug output. If used twice, sensitive information might be displayed!
+      -c|--color                  Force color even if not on tty
+      -C|--no-color               No color output. Will be disabled if no tty is detected on stdout
+      -r|--architecture <arch>    Architecture to download. Tries to be auto-detect according current arch...
+      --force                     Overwrite --output <file> if it already exists. Default is to abort with error.
 
  Note:
-  - If [:tag] is omitted it defaults to :latest. Please use explicit tags where possible.
-  - use http_proxy and https_proxy variables to download behind firewall. See your curl's man page
-  - load and output as tar requires tar binary present in path
-  - load requires docker binary present in path
-  - Required binaries: curl, jq, awk, sha256sum, cut, tr (must be present in PATH or CWD)
-  - Precendence of auth: --credentials, --auth-env, --auth-file, defaults.
+  - Each option must be specified on it's own, like -D -D
+  - You cannot mix secure and insecure registries.
+  - The credentials must be a base64-encoded version of username:password like used in HTTP Basic Auth
+  - Use http_proxy and https_proxy variables to download behind firewall. See your curl's man page
+  - Required binaries (must be present in PATH or CWD): curl jq awk sha256sum uname
+  - The --load and --output options require the 'tar' binary present in PATH
+  - The --load option requires the 'docker' binary present in PATH
+  - Output directory will be removed unless specified with --dir
+  - Authentication has precedence if used multiple times: creds -> env -> file. Default file will be used if not defined otherwise.
 
 ```
 
