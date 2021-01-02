@@ -4,10 +4,12 @@
 
 It allows you to download a docker image in a loadable tar-format, but **without** using `docker pull`, and only relies on bash and some other CLI tools.
 
+**Note**: I personally switched over to [Skopeo](https://github.com/containers/skopeo) because it provides much more features and is a static compiled binary, which is exactly what I needed. I left this bash script here for the public as an example on how to interact programmatically (in a hacky way) with a Container Registry, but do not plan to proactively maintain it in the future if there are changes to the Registry API.
+
 ## Requirements
 
 - Bash 3+
-- curl, jq, awk, sha256sum, cut, tr
+- curl, jq, awk, sha256sum, cut, tr (+some other small trivial cmds) 
 
 ## Usage
 
